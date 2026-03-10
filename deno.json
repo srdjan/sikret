@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "exports": "./mod.ts",
   "tasks": {
+    "compile": "deno compile --allow-read --allow-env --allow-run --output ./bin/sekret cli.ts",
     "test": "deno test --allow-read --allow-write --allow-env --allow-run",
-    "check": "deno check mod.ts cli.ts"
+    "check": "deno check mod.ts cli.ts cli_test.ts"
   },
   "compilerOptions": {
     "strict": true,
