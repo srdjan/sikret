@@ -42,7 +42,7 @@ export async function resolve(
 
 /**
  * Resolve a map of name -> secret URI pairs to name -> value pairs.
- * Fails on the first error.
+ * Resolves concurrently. Returns the first error in entry order.
  *
  * @param refs - A record mapping names to secret URIs
  * @param registry - Optional backend registry
@@ -51,12 +51,16 @@ export async function resolveAll(
   refs: Readonly<Record<string, string>>,
   registry: BackendRegistry = createDefaultRegistry(),
 ): Promise<Result<Record<string, string>, ResolveError>> {
-  const resolved: Record<string, string> = {};
+  const entries = Object.entries(refs);
+  const results = await Promise.all(
+    entries.map(([, uri]) => resolve(uri, registry)),
+  );
 
-  for (const [name, uri] of Object.entries(refs)) {
-    const result = await resolve(uri, registry);
+  const resolved: Record<string, string> = {};
+  for (let i = 0; i < entries.length; i++) {
+    const result = results[i]!;
     if (!result.ok) return result;
-    resolved[name] = result.value;
+    resolved[entries[i]![0]] = result.value;
   }
 
   return ok(resolved);
@@ -76,8 +80,15 @@ export async function resolveFile(
 
   try {
     text = await Deno.readTextFile(path);
-  } catch {
-    return err({ tag: "file-not-found", path });
+  } catch (e) {
+    if (e instanceof Deno.errors.NotFound) {
+      return err({ tag: "file-not-found", path });
+    }
+    return err({
+      tag: "file-parse-error",
+      path,
+      message: e instanceof Error ? e.message : "failed to read file",
+    });
   }
 
   let parsed: unknown;

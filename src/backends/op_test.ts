@@ -1,16 +1,7 @@
 import { assertEquals } from "jsr:@std/assert";
-import type { Result } from "../types.ts";
 import { err, ok } from "../types.ts";
 import { createOpBackend } from "./op.ts";
-
-function fakeRunner(
-  responses: Record<string, Result<string, string>>,
-) {
-  return (cmd: readonly string[]): Promise<Result<string, string>> => {
-    const key = cmd.join(" ");
-    return Promise.resolve(responses[key] ?? err(`unexpected command: ${key}`));
-  };
-}
+import { fakeRunner } from "./test_helpers.ts";
 
 Deno.test("op backend resolves existing secret", async () => {
   const runner = fakeRunner({

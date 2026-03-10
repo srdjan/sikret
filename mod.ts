@@ -1,4 +1,5 @@
 export { parseRef } from "./src/parse.ts";
+export { makeRef } from "./src/types.ts";
 export { resolve, resolveAll, resolveFile } from "./src/resolve.ts";
 export { createRegistry, createDefaultRegistry } from "./src/backends/registry.ts";
 export { createEnvBackend } from "./src/backends/env.ts";
@@ -8,7 +9,6 @@ export { createOpBackend } from "./src/backends/op.ts";
 
 export type {
   Backend,
-  BackendFactory,
   CommandRunner,
   ResolveError,
   Result,

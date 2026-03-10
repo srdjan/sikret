@@ -1,17 +1,18 @@
 import type { Backend, CommandRunner, ResolveError, Result } from "../types.ts";
-import { err, ok } from "../types.ts";
+import { err, makeRef, ok } from "../types.ts";
 import { commandExists, denoCommandRunner } from "./command.ts";
 
 export function createKeychainBackend(
   runner: CommandRunner = denoCommandRunner,
 ): Backend {
+  let cached: Promise<boolean> | undefined;
   return {
     scheme: "keychain",
 
-    available: () => commandExists("security", runner),
+    available: () => (cached ??= commandExists("security", runner)),
 
     resolve: async (path: string): Promise<Result<string, ResolveError>> => {
-      const ref = { scheme: "keychain" as const, path, raw: `keychain:${path}` };
+      const ref = makeRef("keychain", path);
 
       const result = await runner([
         "security",

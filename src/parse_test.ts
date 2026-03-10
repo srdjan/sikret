@@ -64,7 +64,6 @@ Deno.test("parseRef rejects unknown scheme", () => {
   const result = parseRef("aws:secret-name");
   if (result.ok) throw new Error("expected error");
   assertEquals(result.error.tag, "parse-error");
-  assertEquals(result.error.tag, "parse-error");
   if (result.error.tag === "parse-error") {
     assertEquals(result.error.message.includes("unknown scheme"), true);
   }

@@ -55,4 +55,8 @@ export type Backend = {
   readonly resolve: (path: string) => Promise<Result<string, ResolveError>>;
 };
 
-export type BackendFactory = (runner?: CommandRunner) => Backend;
+/** Construct a SecretRef from a scheme and path. */
+export function makeRef(scheme: SecretScheme, path: string): SecretRef {
+  const raw = scheme === "op" ? `op://${path}` : `${scheme}:${path}`;
+  return { scheme, path, raw };
+}

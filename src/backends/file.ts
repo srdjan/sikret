@@ -1,5 +1,5 @@
 import type { Backend, ResolveError, Result } from "../types.ts";
-import { err, ok } from "../types.ts";
+import { err, makeRef, ok } from "../types.ts";
 
 export function createFileBackend(
   readFile: (path: string) => Promise<string> = Deno.readTextFile,
@@ -10,20 +10,17 @@ export function createFileBackend(
     available: () => Promise.resolve(true),
 
     resolve: async (path: string): Promise<Result<string, ResolveError>> => {
+      const ref = makeRef("file", path);
       try {
         const content = await readFile(path);
-        // Trim trailing newline (common in secret files)
         return ok(content.replace(/\n$/, ""));
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
-          return err({
-            tag: "secret-not-found",
-            ref: { scheme: "file", path, raw: `file:${path}` },
-          });
+          return err({ tag: "secret-not-found", ref });
         }
         return err({
           tag: "backend-error",
-          ref: { scheme: "file", path, raw: `file:${path}` },
+          ref,
           message: e instanceof Error ? e.message : "failed to read file",
         });
       }
