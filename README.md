@@ -3,7 +3,7 @@
 Resolve secrets from URI-based references. Supports macOS Keychain, 1Password
 CLI, environment variables, and files.
 
-<video src="demo.mp4" autoplay loop muted playsinline width="100%"></video>
+![sikret demo](demo.gif)
 
 ## Platform Support
 
