@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sikret - resolve secrets from URI references</title>
+  <meta name="description" content="A zero-dependency CLI and Deno library for resolving secrets from macOS Keychain, 1Password, environment variables, and files using URI-based references.">
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-raised: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --green: #7ee887;
+      --green-dim: #238636;
+      --blue: #58a6ff;
+      --cyan: #79c0ff;
+      --yellow: #e3b341;
+      --orange: #d29922;
+      --font-mono: "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      --max-w: 64rem;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- NAV ---- */
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .logo {
+      font-family: var(--font-mono);
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--green);
+      text-decoration: none;
+    }
+
+    nav ul {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    nav a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+
+    nav a:hover {
+      color: var(--text);
+    }
+
+    /* ---- SECTIONS ---- */
+
+    section {
+      padding: 5rem 1.5rem;
+    }
+
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-subtitle {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      margin-bottom: 2.5rem;
+      max-width: 40rem;
+    }
+
+    /* ---- HERO ---- */
+
+    .hero {
+      text-align: center;
+      padding: 8rem 1.5rem 6rem;
+    }
+
+    .hero h1 {
+      font-family: var(--font-mono);
+      font-size: clamp(3rem, 8vw, 5rem);
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .hero .tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      color: var(--text-dim);
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+      line-height: 1.5;
+    }
+
+    .hero .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 3rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      background: var(--surface);
+    }
+
+    .badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .install-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+    }
+
+    .install-box .prompt {
+      color: var(--green);
+      user-select: none;
+    }
+
+    .install-box code {
+      color: var(--text);
+    }
+
+    .install-box button {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .install-box button:hover {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
+
+    /* ---- PROBLEM / SOLUTION ---- */
+
+    .problem {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 640px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .comparison .panel {
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .panel-header {
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .panel-bad .panel-header {
+      background: #3d1f1f;
+      color: #f85149;
+    }
+
+    .panel-good .panel-header {
+      background: #1a3a1a;
+      color: var(--green);
+    }
+
+    .panel pre {
+      padding: 1rem;
+      background: var(--bg);
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
+
+    /* ---- CODE BLOCKS ---- */
+
+    pre {
+      font-family: var(--font-mono);
+      line-height: 1.55;
+    }
+
+    pre code {
+      font-family: inherit;
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .code-block .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .code-block pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+
+    .syn-comment { color: var(--text-dim); }
+    .syn-string { color: var(--cyan); }
+    .syn-cmd { color: var(--text); }
+    .syn-prompt { color: var(--green); user-select: none; }
+    .syn-flag { color: var(--yellow); }
+    .syn-kw { color: #ff7b72; }
+    .syn-fn { color: #d2a8ff; }
+    .syn-type { color: var(--blue); }
+    .syn-key { color: var(--cyan); }
+    .syn-val { color: var(--green); }
+    .syn-dim { color: var(--text-dim); }
+
+    /* ---- FEATURES GRID ---- */
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--green-dim);
+    }
+
+    .feature-card .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+      width: 2.5rem;
+      height: 2.5rem;
+      line-height: 2.5rem;
+      text-align: center;
+      background: var(--surface-raised);
+      border-radius: 0.375rem;
+      border: 1px solid var(--border);
+    }
+
+    .feature-card h3 {
+      color: var(--text);
+    }
+
+    .feature-card p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    /* ---- SCHEMES TABLE ---- */
+
+    .schemes-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .schemes-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      border-bottom: 2px solid var(--border);
+    }
+
+    .schemes-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .schemes-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .schemes-table code {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--green);
+      background: var(--surface-raised);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+    }
+
+    .schemes-table .desc {
+      color: var(--text-dim);
+    }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    /* ---- USAGE TABS ---- */
+
+    .usage-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+
+    .usage-tab {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .usage-tab:hover {
+      color: var(--text);
+    }
+
+    .usage-tab[aria-selected="true"] {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ---- FOOTER ---- */
+
+    footer {
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---- UTILITIES ---- */
+
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    .mt-4 { margin-top: 2rem; }
+    .mb-4 { margin-bottom: 2rem; }
+    .text-dim { color: var(--text-dim); }
+    .text-green { color: var(--green); }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">sikret</a>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#schemes">Backends</a></li>
+    <li><a href="#library">Library</a></li>
+    <li><a href="https://github.com/srdjans/sikret">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <h1>sikret</h1>
+    <p class="tagline">
+      Resolve secrets from URI-based references. One tool for macOS Keychain,
+      1Password, env vars, and files.
+    </p>
+    <div class="badges">
+      <span class="badge"><span class="dot"></span> zero dependencies</span>
+      <span class="badge"><span class="dot"></span> CLI + library</span>
+      <span class="badge"><span class="dot"></span> Deno / TypeScript</span>
+      <span class="badge"><span class="dot"></span> macOS &amp; Linux</span>
+    </div>
+    <div class="install-box">
+      <span class="prompt">$</span>
+      <code>sikret resolve keychain:my-api-key</code>
+      <button onclick="navigator.clipboard.writeText('sikret resolve keychain:my-api-key')" title="Copy">copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM / SOLUTION -->
+<section class="problem">
+  <div class="container">
+    <h2>The problem</h2>
+    <p class="section-subtitle">
+      Secrets leak into git history, shell logs, .env files, and deploy scripts.
+      sikret replaces hardcoded values with URI references that resolve at runtime.
+    </p>
+    <div class="comparison">
+      <div class="panel panel-bad">
+        <div class="panel-header">Before</div>
+        <pre><code><span class="syn-comment"># Secrets in plain text everywhere</span>
+<span class="syn-cmd">export</span> <span class="syn-string">OPENAI_KEY="sk-live-R4nD0mStr1ng"</span>
+<span class="syn-cmd">echo</span> <span class="syn-string">"$DB_PASS"</span> >> deploy.sh
+
+<span class="syn-comment"># They end up in git, logs, .bash_history...</span></code></pre>
+      </div>
+      <div class="panel panel-good">
+        <div class="panel-header">After</div>
+        <pre><code><span class="syn-comment"># Reference secrets by URI</span>
+<span class="syn-cmd">KEY=</span><span class="syn-string">"$(sikret resolve keychain:openai)"</span>
+
+<span class="syn-comment"># Or inject them into a process directly</span>
+<span class="syn-cmd">sikret exec</span> secrets.json <span class="syn-flag">--</span> ./my-app
+
+<span class="syn-comment"># Nothing sensitive on disk or in history</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <h2>Why sikret</h2>
+    <p class="section-subtitle">
+      A single binary that works with the secret stores you already use.
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">U</span>
+        <h3>URI-based references</h3>
+        <p>
+          Secrets are addressed as URIs like <code>keychain:name</code> or
+          <code>op://vault/item/field</code>. Config files store references,
+          never values.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">P</span>
+        <h3>Pluggable backends</h3>
+        <p>
+          macOS Keychain, 1Password CLI, environment variables, and files
+          out of the box. The registry pattern lets you add your own.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">E</span>
+        <h3>Process injection</h3>
+        <p>
+          <code>sikret exec</code> resolves secrets and injects them as
+          environment variables into a child process. Secrets never touch
+          disk or shell history.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">0</span>
+        <h3>Zero dependencies</h3>
+        <p>
+          Ships as a single static binary compiled with Deno. No runtime,
+          no package manager, no node_modules.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">J</span>
+        <h3>Structured output</h3>
+        <p>
+          <code>--json</code> output for automation. Pipe into jq, feed
+          to other tools, or parse programmatically. Errors are structured too.
+        </p>
+      </div>
+      <div class="feature-card">
+        <span class="icon" aria-hidden="true">L</span>
+        <h3>Library API</h3>
+        <p>
+          Import from JSR for Deno and TypeScript projects. Explicit backend
+          registration means your app only loads what it needs.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USAGE -->
+<section id="usage" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="container">
+    <h2>Usage</h2>
+    <p class="section-subtitle">
+      Three commands cover the most common workflows.
+    </p>
+
+    <div class="code-block">
+      <div class="usage-tabs" role="tablist">
+        <button class="usage-tab" role="tab" aria-selected="true" data-tab="resolve">resolve</button>
+        <button class="usage-tab" role="tab" aria-selected="false" data-tab="exec">exec</button>
+        <button class="usage-tab" role="tab" aria-selected="false" data-tab="export">export</button>
+      </div>
+      <div id="tab-resolve" class="tab-panel active" role="tabpanel">
+        <pre><code><span class="syn-comment"># Resolve a single secret to stdout</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret resolve</span> <span class="syn-string">keychain:openai-api-key</span>
+sk-live-aBcDeFgHiJkLmNoPqRsT
+
+<span class="syn-comment"># Resolve as structured JSON</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret resolve</span> <span class="syn-flag">--json</span> <span class="syn-string">env:HOME</span>
+{"ok": true, "value": "/Users/demo"}
+
+<span class="syn-comment"># Read the URI from stdin (keeps refs out of argv)</span>
+<span class="syn-prompt">$ </span><span class="syn-dim">printf 'op://Private/openai/api-key' |</span> <span class="syn-cmd">sikret resolve</span> <span class="syn-flag">--stdin</span></code></pre>
+      </div>
+      <div id="tab-exec" class="tab-panel" role="tabpanel">
+        <pre><code><span class="syn-comment"># Run a child process with secrets from a JSON map file</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret exec</span> <span class="syn-string">secrets.json</span> <span class="syn-flag">--</span> <span class="syn-dim">./my-app</span>
+
+<span class="syn-comment"># Inline a secret ref without creating a file</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret exec</span> <span class="syn-flag">--env</span> <span class="syn-string">OPENAI_API_KEY=op://Private/openai/api-key</span> <span class="syn-flag">--</span> <span class="syn-dim">./my-app</span>
+
+<span class="syn-comment"># Load the ref from an env var (nothing in argv)</span>
+<span class="syn-prompt">$ </span><span class="syn-dim">OPENAI_API_KEY_REF='op://Private/openai/api-key'</span> \
+  <span class="syn-cmd">sikret exec</span> <span class="syn-flag">--ref-env</span> <span class="syn-string">OPENAI_API_KEY=OPENAI_API_KEY_REF</span> <span class="syn-flag">--</span> <span class="syn-dim">./my-app</span></code></pre>
+      </div>
+      <div id="tab-export" class="tab-panel" role="tabpanel">
+        <pre><code><span class="syn-comment"># Export resolved secrets as JSON for other tools</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret export</span> <span class="syn-flag">--json</span> <span class="syn-string">secrets.json</span>
+{
+  "OPENAI_API_KEY": "sk-live-aBcDeFgHiJkLmNoPqRsT",
+  "DB_PASSWORD": "hunter2"
+}
+
+<span class="syn-comment"># Pipe into jq for a specific value</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret export</span> <span class="syn-flag">--json</span> <span class="syn-string">secrets.json</span> <span class="syn-dim">| jq -r '.OPENAI_API_KEY'</span>
+
+<span class="syn-comment"># Export as shell variables</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">sikret export</span> <span class="syn-string">secrets.json</span>
+export OPENAI_API_KEY='sk-live-aBcDeFgHiJkLmNoPqRsT'
+export DB_PASSWORD='hunter2'</code></pre>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <h3>Secrets file format</h3>
+      <p class="text-dim mt-1" style="font-size: 0.9rem; margin-bottom: 1rem;">
+        A JSON object mapping environment variable names to secret URIs.
+      </p>
+      <div class="code-block">
+        <div class="code-header">secrets.json</div>
+        <pre><code>{
+  <span class="syn-key">"OPENAI_API_KEY"</span>:    <span class="syn-string">"keychain:openai-api-key"</span>,
+  <span class="syn-key">"ANTHROPIC_API_KEY"</span>: <span class="syn-string">"op://Private/anthropic/api-key"</span>,
+  <span class="syn-key">"DEBUG"</span>:             <span class="syn-string">"env:DEBUG"</span>,
+  <span class="syn-key">"CERT"</span>:              <span class="syn-string">"file:/etc/ssl/private/cert.pem"</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEMES -->
+<section id="schemes">
+  <div class="container">
+    <h2>Supported backends</h2>
+    <p class="section-subtitle">
+      Four URI schemes ship out of the box. The registry is open for custom backends.
+    </p>
+    <div class="table-wrap">
+      <table class="schemes-table">
+        <thead>
+          <tr>
+            <th>Scheme</th>
+            <th>Format</th>
+            <th>Backend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>keychain</code></td>
+            <td><code>keychain:&lt;service-name&gt;</code></td>
+            <td class="desc">macOS Keychain via <code>security</code> CLI</td>
+          </tr>
+          <tr>
+            <td><code>op</code></td>
+            <td><code>op://&lt;vault&gt;/&lt;item&gt;/&lt;field&gt;</code></td>
+            <td class="desc">1Password CLI via <code>op read</code></td>
+          </tr>
+          <tr>
+            <td><code>env</code></td>
+            <td><code>env:&lt;VAR_NAME&gt;</code></td>
+            <td class="desc">Environment variable lookup</td>
+          </tr>
+          <tr>
+            <td><code>file</code></td>
+            <td><code>file:&lt;path&gt;</code></td>
+            <td class="desc">File contents (single trailing newline trimmed)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- LIBRARY -->
+<section id="library" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="container">
+    <h2>Library API</h2>
+    <p class="section-subtitle">
+      Import from JSR for Deno and TypeScript projects. Explicit backend
+      registration keeps your dependency surface minimal.
+    </p>
+    <div class="code-block">
+      <div class="code-header">app.ts</div>
+      <pre><code><span class="syn-kw">import</span> { createOpBackend, createRegistry, resolve } <span class="syn-kw">from</span> <span class="syn-string">"jsr:@srdjan/sikret"</span>;
+
+<span class="syn-kw">const</span> <span class="syn-cmd">registry</span> = <span class="syn-fn">createRegistry</span>([<span class="syn-fn">createOpBackend</span>()]);
+<span class="syn-kw">const</span> <span class="syn-cmd">result</span> = <span class="syn-kw">await</span> <span class="syn-fn">resolve</span>(<span class="syn-string">"op://Private/openai/api-key"</span>, registry);
+
+<span class="syn-kw">if</span> (!result.<span class="syn-type">ok</span>) {
+  <span class="syn-kw">throw new</span> <span class="syn-fn">Error</span>(result.error.tag);
+}
+
+console.<span class="syn-fn">log</span>(result.value);</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="container">
+    <h2>Install</h2>
+    <p class="section-subtitle">
+      Download a prebuilt binary for macOS or Linux, or build from source.
+    </p>
+    <div class="code-block mb-4">
+      <div class="code-header">Download from GitHub Releases</div>
+      <pre><code><span class="syn-comment"># macOS (Apple Silicon)</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">curl -LO</span> <span class="syn-string">https://github.com/srdjans/sikret/releases/latest/download/sikret-aarch64-apple-darwin.tar.gz</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">tar xzf</span> sikret-aarch64-apple-darwin.tar.gz
+<span class="syn-prompt">$ </span><span class="syn-cmd">mv</span> sikret /usr/local/bin/
+
+<span class="syn-comment"># Or build from source</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">git clone</span> https://github.com/srdjans/sikret &amp;&amp; <span class="syn-cmd">cd</span> sikret
+<span class="syn-prompt">$ </span><span class="syn-cmd">deno task compile</span>
+<span class="syn-prompt">$ </span><span class="syn-cmd">mv</span> bin/sikret /usr/local/bin/</code></pre>
+    </div>
+    <p class="text-dim" style="font-size: 0.9rem;">
+      Deno is only needed for building from source. The compiled binary has zero
+      runtime dependencies.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    sikret is open source.
+    <a href="https://github.com/srdjans/sikret">GitHub</a>
+  </p>
+</footer>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.usage-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabId = tab.dataset.tab;
+      document.querySelectorAll('.usage-tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.setAttribute('aria-selected', 'true');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
