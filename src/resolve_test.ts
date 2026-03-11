@@ -97,7 +97,7 @@ Deno.test("resolveFile resolves from a real temp file", async () => {
 });
 
 Deno.test("resolveFile returns file-not-found for missing file", async () => {
-  const result = await resolveFile("/tmp/nonexistent-sekret.json", testRegistry());
+  const result = await resolveFile("/tmp/nonexistent-sikret.json", testRegistry());
   if (result.ok) throw new Error("expected error");
   assertEquals(result.error.tag, "file-not-found");
 });

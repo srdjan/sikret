@@ -56,13 +56,13 @@ async function runCli(
 
 Deno.test("cli resolve --json returns structured output", async () => {
   const result = await runCli(["resolve", "--json", "env:HOME"], {
-    env: { HOME: "/tmp/sekret-home" },
+    env: { HOME: "/tmp/sikret-home" },
   });
 
   assertEquals(result.code, 0);
   assertEquals(JSON.parse(result.stdout), {
     ok: true,
-    value: "/tmp/sekret-home",
+    value: "/tmp/sikret-home",
   });
   assertEquals(result.stderr, "");
 });

@@ -1,14 +1,16 @@
-# sekret
+# sikret
 
 Resolve secrets from URI-based references. Supports macOS Keychain, 1Password
 CLI, environment variables, and files.
 
+<video src="demo.mp4" autoplay loop muted playsinline width="100%"></video>
+
 ## Install
 
-The CLI is intended to be consumed as a standalone `sekret` binary.
+The CLI is intended to be consumed as a standalone `sikret` binary.
 
 For normal use, download the archive for your platform from the repo's Releases
-page, verify it against `SHA256SUMS.txt`, extract it, and put `sekret` on your
+page, verify it against `SHA256SUMS.txt`, extract it, and put `sikret` on your
 `PATH`.
 
 If you maintain this repo or package it from source, build the binary locally
@@ -18,36 +20,36 @@ with:
 deno task compile
 ```
 
-Deno is only needed to develop or package `sekret` from source. CLI consumers
+Deno is only needed to develop or package `sikret` from source. CLI consumers
 should not need a Deno installation.
 
 ## CLI
 
 ```sh
 # Resolve a single secret to stdout
-sekret resolve keychain:openai-api-key
+sikret resolve keychain:openai-api-key
 
 # Avoid putting the ref in argv/history
-printf 'op://Private/openai/api-key' | sekret resolve --stdin
+printf 'op://Private/openai/api-key' | sikret resolve --stdin
 
 # Resolve as structured JSON
-sekret resolve --json env:HOME
+sikret resolve --json env:HOME
 
 # Resolve a map file as JSON for automation
-sekret export --json secrets.json
+sikret export --json secrets.json
 
 # Run a child process with resolved environment variables
-sekret exec secrets.json -- ./my-app
+sikret exec secrets.json -- ./my-app
 
 # Keep the ref out of argv by loading it from an env var
 OPENAI_API_KEY_REF='op://Private/openai/api-key' \
-  sekret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
+  sikret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
 
 # Inline a single secret ref without creating a JSON file
-sekret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app
+sikret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app
 ```
 
-Prefer `sekret exec` or JSON output for automation. Use shell export output only
+Prefer `sikret exec` or JSON output for automation. Use shell export output only
 when you explicitly need shell syntax.
 
 ## Secrets File
@@ -64,7 +66,7 @@ URIs:
 }
 ```
 
-Keys used with `sekret export` or `sekret exec` must be valid environment
+Keys used with `sikret export` or `sikret exec` must be valid environment
 variable names.
 
 ## URI Schemes
@@ -80,45 +82,45 @@ variable names.
 
 ### Shell Scripts and Other Processes
 
-Use `sekret resolve` when you need a single value:
+Use `sikret resolve` when you need a single value:
 
 ```sh
-API_KEY="$(sekret resolve op://Private/openai/api-key)"
+API_KEY="$(sikret resolve op://Private/openai/api-key)"
 ```
 
 If you need to avoid putting the ref in argv or shell history, keep the ref in
-an environment variable and let `sekret exec` resolve it:
+an environment variable and let `sikret exec` resolve it:
 
 ```sh
 OPENAI_API_KEY_REF='op://Private/openai/api-key' \
-  sekret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
+  sikret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
 ```
 
-`OPENAI_API_KEY_REF` is used only by `sekret` during resolution and is not
+`OPENAI_API_KEY_REF` is used only by `sikret` during resolution and is not
 forwarded to the child process.
 
-Use `sekret exec` when you want to inject multiple resolved values into a child
+Use `sikret exec` when you want to inject multiple resolved values into a child
 process without printing secrets to stdout:
 
 ```sh
-sekret exec secrets.json -- ./my-app
+sikret exec secrets.json -- ./my-app
 ```
 
 For one-off script integrations, you can skip the JSON file and inject refs
 inline:
 
 ```sh
-sekret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app
+sikret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app
 ```
 
-Inline `--env` flags improve ergonomics, but the ref still appears in `sekret`'s
+Inline `--env` flags improve ergonomics, but the ref still appears in `sikret`'s
 argv while the process runs. Use `--ref-env`, `secrets.json`, or
 `resolve --stdin` when ref metadata exposure matters.
 
-Use `sekret export --json` when another tool expects structured output:
+Use `sikret export --json` when another tool expects structured output:
 
 ```sh
-sekret export --json secrets.json | jq -r '.OPENAI_API_KEY'
+sikret export --json secrets.json | jq -r '.OPENAI_API_KEY'
 ```
 
 ### `.env` Files
@@ -132,7 +134,7 @@ OPENAI_API_KEY_REF=op://Private/openai/api-key
 ```
 
 ```sh
-sekret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
+sikret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
 ```
 
 For batch workflows, a JSON secrets file is the native format today.
@@ -143,7 +145,7 @@ The library API is Deno-first. Import from JSR and pass an explicit backend
 registry so your application only enables the backends it actually needs:
 
 ```typescript
-import { createOpBackend, createRegistry, resolve } from "jsr:@sekret/sekret";
+import { createOpBackend, createRegistry, resolve } from "jsr:@sikret/sikret";
 
 const registry = createRegistry([createOpBackend()]);
 const result = await resolve("op://Private/openai/api-key", registry);

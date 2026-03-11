@@ -46,19 +46,19 @@ async function readAllStdin(): Promise<string> {
 
 function printResolveUsage(): void {
   console.log(`usage:
-  sekret resolve [--json] <uri>
-  sekret resolve [--json] --stdin`);
+  sikret resolve [--json] <uri>
+  sikret resolve [--json] --stdin`);
 }
 
 function printExportUsage(): void {
-  console.log("usage: sekret export [--json] <file>");
+  console.log("usage: sikret export [--json] <file>");
 }
 
 function printExecUsage(): void {
   console.log(`usage:
-  sekret exec <file> -- <command> [args...]
-  sekret exec [<file>] --env NAME=URI [--env NAME=URI ...] -- <command> [args...]
-  sekret exec [<file>] --ref-env NAME=REF_ENV [--ref-env NAME=REF_ENV ...] -- <command> [args...]`);
+  sikret exec <file> -- <command> [args...]
+  sikret exec [<file>] --env NAME=URI [--env NAME=URI ...] -- <command> [args...]
+  sikret exec [<file>] --ref-env NAME=REF_ENV [--ref-env NAME=REF_ENV ...] -- <command> [args...]`);
 }
 
 function wantsHelp(args: readonly string[]): boolean {
@@ -215,17 +215,17 @@ async function cmdExec(options: {
 }
 
 function printUsage(): void {
-  console.log(`sekret - resolve secrets from URI references
+  console.log(`sikret - resolve secrets from URI references
 
 Usage:
-  sekret resolve [--json] <uri>  Resolve a single secret
-  sekret resolve --stdin         Resolve a secret URI read from stdin
-  sekret export <file>           Resolve a map file, print shell exports
-  sekret export --json <file>    Resolve a map file, print as JSON
-  sekret exec <file> -- <cmd>    Run a command with resolved env vars
-  sekret exec --env NAME=URI -- <cmd>
+  sikret resolve [--json] <uri>  Resolve a single secret
+  sikret resolve --stdin         Resolve a secret URI read from stdin
+  sikret export <file>           Resolve a map file, print shell exports
+  sikret export --json <file>    Resolve a map file, print as JSON
+  sikret exec <file> -- <cmd>    Run a command with resolved env vars
+  sikret exec --env NAME=URI -- <cmd>
                                  Run a command with inline secret refs
-  sekret exec --ref-env NAME=REF_ENV -- <cmd>
+  sikret exec --ref-env NAME=REF_ENV -- <cmd>
                                  Run a command with refs loaded from env vars
 
 Supported URI schemes:
@@ -235,12 +235,12 @@ Supported URI schemes:
   file:<path>                      read from file
 
 Examples:
-  sekret resolve keychain:openai-api-key
-  printf 'env:HOME' | sekret resolve --stdin
-  sekret resolve --json env:HOME
-  sekret export --json secrets.json
-  OPENAI_API_KEY_REF=op://Private/openai/api-key sekret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
-  sekret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app`);
+  sikret resolve keychain:openai-api-key
+  printf 'env:HOME' | sikret resolve --stdin
+  sikret resolve --json env:HOME
+  sikret export --json secrets.json
+  OPENAI_API_KEY_REF=op://Private/openai/api-key sikret exec --ref-env OPENAI_API_KEY=OPENAI_API_KEY_REF -- ./my-app
+  sikret exec --env OPENAI_API_KEY=op://Private/openai/api-key -- ./my-app`);
 }
 
 type ResolveCliOptions = {

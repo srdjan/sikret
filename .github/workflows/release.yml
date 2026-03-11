@@ -1,0 +1,108 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            binary_name: sikret
+            archive_type: tar.gz
+          - target: x86_64-apple-darwin
+            binary_name: sikret
+            archive_type: tar.gz
+          - target: aarch64-apple-darwin
+            binary_name: sikret
+            archive_type: tar.gz
+          - target: x86_64-pc-windows-msvc
+            binary_name: sikret.exe
+            archive_type: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(deno eval 'console.log(JSON.parse(Deno.readTextFileSync("deno.json")).version)')"
+          fi
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Compile binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          deno compile \
+            --allow-read \
+            --allow-env \
+            --allow-run \
+            --target "${{ matrix.target }}" \
+            --output "dist/${{ matrix.binary_name }}" \
+            cli.ts
+
+      - name: Package archive
+        id: package
+        shell: bash
+        run: |
+          ARCHIVE="sikret-v${{ steps.version.outputs.value }}-${{ matrix.target }}.${{ matrix.archive_type }}"
+
+          if [[ "${{ matrix.archive_type }}" == "zip" ]]; then
+            (
+              cd dist
+              zip -9 "../${ARCHIVE}" "${{ matrix.binary_name }}"
+            )
+          else
+            tar -C dist -czf "${ARCHIVE}" "${{ matrix.binary_name }}"
+          fi
+
+          echo "archive=${ARCHIVE}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sikret-${{ matrix.target }}
+          path: ${{ steps.package.outputs.archive }}
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sikret-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          (
+            cd release-assets
+            sha256sum sikret-* > SHA256SUMS.txt
+          )
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/*
+          generate_release_notes: true
