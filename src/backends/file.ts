@@ -1,5 +1,6 @@
 import type { Backend, ResolveError, Result } from "../types.ts";
 import { err, makeRef, ok } from "../types.ts";
+import { stripSingleTrailingLineEnding } from "../text.ts";
 
 export function createFileBackend(
   readFile: (path: string) => Promise<string> = Deno.readTextFile,
@@ -13,7 +14,7 @@ export function createFileBackend(
       const ref = makeRef("file", path);
       try {
         const content = await readFile(path);
-        return ok(content.replace(/\n$/, ""));
+        return ok(stripSingleTrailingLineEnding(content));
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
           return err({ tag: "secret-not-found", ref });

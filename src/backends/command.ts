@@ -1,5 +1,6 @@
 import type { CommandRunner, Result } from "../types.ts";
 import { err, ok } from "../types.ts";
+import { stripSingleTrailingLineEnding } from "../text.ts";
 
 /** Default command runner using Deno.Command. */
 export const denoCommandRunner: CommandRunner = async (
@@ -18,11 +19,15 @@ export const denoCommandRunner: CommandRunner = async (
     const output = await command.output();
 
     if (!output.success) {
-      const stderr = new TextDecoder().decode(output.stderr).trim();
+      const stderr = stripSingleTrailingLineEnding(
+        new TextDecoder().decode(output.stderr),
+      );
       return err(stderr || `command exited with code ${output.code}`);
     }
 
-    return ok(new TextDecoder().decode(output.stdout).trim());
+    return ok(
+      stripSingleTrailingLineEnding(new TextDecoder().decode(output.stdout)),
+    );
   } catch (e) {
     return err(e instanceof Error ? e.message : "command execution failed");
   }

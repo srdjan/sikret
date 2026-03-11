@@ -21,6 +21,26 @@ Deno.test("file backend preserves content without trailing newline", async () =>
   assertEquals(result.value, "my-secret");
 });
 
+Deno.test("file backend strips a single trailing CRLF", async () => {
+  const backend = createFileBackend(
+    (_path) => Promise.resolve("my-secret\r\n"),
+  );
+
+  const result = await backend.resolve("/tmp/secret.txt");
+  if (!result.ok) throw new Error("expected ok");
+  assertEquals(result.value, "my-secret");
+});
+
+Deno.test("file backend preserves significant spaces", async () => {
+  const backend = createFileBackend(
+    (_path) => Promise.resolve("  my-secret  \n"),
+  );
+
+  const result = await backend.resolve("/tmp/secret.txt");
+  if (!result.ok) throw new Error("expected ok");
+  assertEquals(result.value, "  my-secret  ");
+});
+
 Deno.test("file backend returns secret-not-found for missing file", async () => {
   const backend = createFileBackend(
     (_path) => Promise.reject(new Deno.errors.NotFound("not found")),
