@@ -5,16 +5,29 @@ CLI, environment variables, and files.
 
 <video src="demo.mp4" autoplay loop muted playsinline width="100%"></video>
 
+## Platform Support
+
+`sikret` currently ships release archives for:
+
+- macOS (Intel and Apple Silicon)
+- Linux (x86_64)
+
+FreeBSD users should build from source on the target machine for now. The
+portable backends (`op`, `env`, and `file`) are the intended path there, but we
+do not publish FreeBSD binaries because `deno compile` does not currently offer
+a FreeBSD target.
+
+Windows is not currently supported. It may be revisited in the future.
+
 ## Install
 
 The CLI is intended to be consumed as a standalone `sikret` binary.
 
-For normal use, download the archive for your platform from the repo's Releases
-page, verify it against `SHA256SUMS.txt`, extract it, and put `sikret` on your
-`PATH`.
+For normal use on macOS or Linux, download the archive for your platform from
+the repo's Releases page, verify it against `SHA256SUMS.txt`, extract it, and
+put `sikret` on your `PATH`.
 
-If you maintain this repo or package it from source, build the binary locally
-with:
+If you maintain this repo or need a local build, build the binary locally with:
 
 ```sh
 deno task compile
@@ -71,12 +84,12 @@ variable names.
 
 ## URI Schemes
 
-| Scheme     | Format                        | Backend                                  |
-| ---------- | ----------------------------- | ---------------------------------------- |
-| `keychain` | `keychain:<service-name>`     | macOS Keychain via `security`            |
-| `op`       | `op://<vault>/<item>/<field>` | 1Password CLI via `op read`              |
-| `env`      | `env:<VAR_NAME>`              | Environment variable                     |
-| `file`     | `file:<path>`                 | File contents (trailing newline trimmed) |
+| Scheme     | Format                        | Backend                                             |
+| ---------- | ----------------------------- | --------------------------------------------------- |
+| `keychain` | `keychain:<service-name>`     | macOS Keychain via `security`                       |
+| `op`       | `op://<vault>/<item>/<field>` | 1Password CLI via `op read`                         |
+| `env`      | `env:<VAR_NAME>`              | Environment variable                                |
+| `file`     | `file:<path>`                 | File contents (single trailing line ending trimmed) |
 
 ## External Programs
 
@@ -145,7 +158,7 @@ The library API is Deno-first. Import from JSR and pass an explicit backend
 registry so your application only enables the backends it actually needs:
 
 ```typescript
-import { createOpBackend, createRegistry, resolve } from "jsr:@sikret/sikret";
+import { createOpBackend, createRegistry, resolve } from "jsr:@srdjan/sikret";
 
 const registry = createRegistry([createOpBackend()]);
 const result = await resolve("op://Private/openai/api-key", registry);
